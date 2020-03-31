@@ -78,7 +78,7 @@ void render2DTree(Node* node, pcl::visualization::PCLVisualizer::Ptr& viewer, Bo
 
 
 
-void proximityDetermination(const std::vector<std::vector<float>>& points, std::unordered_set<int>& processedIndices, const int target, std::vector<int> cluster, KdTree* tree, float distanceTol)
+void proximityDetermination(const std::vector<std::vector<float>>& points, std::unordered_set<int>& processedIndices, const int target, std::vector<int>& cluster, KdTree* tree, float distanceTol)
 {
 	processedIndices.insert(target);
 	cluster.push_back(target);
@@ -148,6 +148,12 @@ int main ()
   	//
   	std::vector<std::vector<int>> clusters = euclideanCluster(points, tree, 3.0);
   	//
+
+	std::cout << "Number of clusters detected: " << clusters.size() << std::endl;
+	for (auto cluster : clusters)
+		std::cout << "=> Size of cluster: " << cluster.size() << std::endl;
+
+
   	auto endTime = std::chrono::steady_clock::now();
   	auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
   	std::cout << "clustering found " << clusters.size() << " and took " << elapsedTime.count() << " milliseconds" << std::endl;
