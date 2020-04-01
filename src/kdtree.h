@@ -1,11 +1,7 @@
-#include "../../render/render.h"
+#ifndef KDTREE_H_
+#define KDTREE_H_
 
-
-template<typename PointT>
-inline float euclDist(PointT X, PointT Y) {
-	return sqrt(pow((X[0]-Y[0]),2) + pow((X[1]-Y[1]),2));
-}
-
+#include <pcl/common/geometry.h>
 
 // Structure to represent node of kd tree
 template<typename PointT>
@@ -13,8 +9,8 @@ struct Node
 {
 	PointT point;
 	int id;
-	Node* left;
-	Node* right;
+	Node<PointT>* left;
+	Node<PointT>* right;
 
 	Node(PointT arr, int setId)
 	:	point(arr), id(setId), left(NULL), right(NULL)
@@ -24,19 +20,35 @@ struct Node
 template<typename PointT>
 struct KdTree
 {
-	Node* root;
+	Node<PointT>* root;
 
 	KdTree() : root(NULL)
 	{}
 
 	void insert(PointT point, int id)
 	{
-		Node** currentNode = &root;
+		Node<PointT>** currentNode = &root;
 		int depth = 0;
-		
+		float currentNodeComponent, targetComponent;
+
 		while (*currentNode!=NULL)
 		{
-			if ((*currentNode)->point[depth%3] > point[depth%3])
+			switch(depth%3) {
+			case 0:
+				currentNodeComponent = (*currentNode)->point.x;
+				targetComponent = point.x;
+				break;
+			case 1:
+				currentNodeComponent = (*currentNode)->point.y;
+				targetComponent = point.y;
+				break;
+			case 2:
+				currentNodeComponent = (*currentNode)->point.z;
+				targetComponent = point.z;
+				break;
+			}
+
+			if (currentNodeComponent > targetComponent)
 				currentNode = &(*currentNode)->right;
 			else
 				currentNode = &(*currentNode)->left;		
@@ -44,18 +56,34 @@ struct KdTree
 			depth++;	
 		}
 	
-		*currentNode = new Node(point, id);
+		*currentNode = new Node<PointT>(point, id);
 	}
 
 private:
-    template<typename PointT>
-	std::vector<int> searchHelper(Node* currentNode, std::vector<int> &ids, PointT target, float distanceTol, uint depth=0)
+	std::vector<int> searchHelper(Node<PointT>* currentNode, std::vector<int> &ids, PointT target, float distanceTol, uint depth=0)
 	{
-		float d = euclDist(currentNode->point, target);
+		float d = pcl::geometry::distance<PointT>(currentNode->point, target);
+		float currentNodeComponent, targetComponent;
+
+		switch(depth%3) {
+			case 0:
+				currentNodeComponent = currentNode->point.x;
+				targetComponent = target.x;
+				break;
+			case 1:
+				currentNodeComponent = currentNode->point.y;
+				targetComponent = target.y;
+				break;
+			case 2:
+				currentNodeComponent = currentNode->point.z;
+				targetComponent = target.z;
+				break;
+		}
+
 
 		if (currentNode!=NULL)
 		{
-			if (abs(currentNode->point[depth3] - target[depth%3]) < distanceTol)
+			if (abs(currentNodeComponent - targetComponent) < distanceTol)
 				if (d < distanceTol)
 					ids.push_back(currentNode->id);
 
@@ -71,7 +99,6 @@ private:
 
 public:
 	// return a list of point ids in the tree that are within distance of target
-    template<typename PointT>
 	std::vector<int> search(PointT target, float distanceTol)
 	{
 		std::vector<int> ids;
@@ -80,6 +107,8 @@ public:
 		return ids;
 	}
 };
+
+#endif
 
 
 
