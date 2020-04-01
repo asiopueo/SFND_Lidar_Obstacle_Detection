@@ -1,6 +1,7 @@
 // PCL lib Functions for processing point clouds 
 
 #include "processPointClouds.h"
+#include "kdtree.h"
 #include <unordered_set>
 
 //constructor:
@@ -158,17 +159,17 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 }
 
 
-/*template<typename PointT>
-void clusterHelper(const std::vector<std::vector<float>>& points, std::unordered_set<int>& processedIndices, const int target, std::vector<int>& cluster, KdTree* tree, float distanceTol)
+template<typename PointT>
+void clusterHelper(typename pcl::PointCloud<PointT>::Ptr& cloud, std::unordered_set<int>& processedIndices, const int target, std::vector<int>& cluster, KdTree<PointT>* tree, float distanceTol)
 {
 	processedIndices.insert(target);
 	cluster.push_back(target);
 	
-	std::vector<int> nbrPoints = tree->search(points[target], distanceTol);
+	std::vector<int> nbrPoints = tree->search(cloud->points[target], distanceTol);
 	for (int nbrPoint : nbrPoints)
 		if (!processedIndices.count(nbrPoint))
-			proximityDetermination(points, processedIndices, nbrPoint, cluster, tree, distanceTol);
-}*/
+			clusterHelper(cloud, processedIndices, nbrPoint, cluster, tree, distanceTol);
+}
 
 
 // TODO:: Fill in the function to perform euclidean clustering to group detected obstacles
@@ -179,18 +180,31 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     auto startTime = std::chrono::steady_clock::now();
 
     std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
-	/*std::unordered_set<int> processedIndices;
+	std::unordered_set<int> processedIndices;
  
+    // Initialize Kd-Tree:
+    KdTree<PointT>* tree = new KdTree<PointT>();
+    for (size_t i=0; i<cloud->points.size(); ++i)
+        tree->insert(cloud->points[i], i);
+
 	for (size_t index = 0; index < cloud->points.size(); index++)
 	{
 		if (!processedIndices.count(index))
 		{
 			// Create cluster
 			std::vector<int> cluster;
-			clusterHelper(points, processedIndices, index, cluster, tree, distanceTol);
-			clusters.push_back(cluster);
+            typename pcl::PointCloud<PointT>::Ptr clusterCloud(new pcl::PointCloud<PointT>);
+			clusterHelper(cloud, processedIndices, index, cluster, tree, clusterTolerance);
+			
+            for (size_t i : cluster)
+            {
+                PointT point = cloud->points[i];
+                clusterCloud->points.push_back(point);
+            }
+                        
+            clusters.push_back(clusterCloud);
 		}
-	}*/
+	}
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
