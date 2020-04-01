@@ -56,11 +56,11 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
     //std::pair<boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>, boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>> segmentedPair = processPointClouds.SegmentPlane(lidarCloud, 100, 0.2);
     std::pair<boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>, boost::shared_ptr<pcl::PointCloud<pcl::PointXYZ>>> segmentedPair = processPointClouds.SegmentPlaneCustom(lidarCloud, 100, 0.2);
     // Render plane and object clouds separately:
-    renderPointCloud(viewer, segmentedPair.first, "obstacleCloud", Color(0,0,1));
-    renderPointCloud(viewer, segmentedPair.second, "planeCloud", Color(0,1,0));
+    renderPointCloud(viewer, segmentedPair.first, "planeCloud", Color(0,1,0));
+    renderPointCloud(viewer, segmentedPair.second, "obstacleCloud", Color(0,0,1));
 
     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clusters;
-    clusters = processPointClouds.Clustering(segmentedPair.first, 1.0, 1.0, 1.0);
+    clusters = processPointClouds.Clustering(segmentedPair.second, 1.0, 1.0, 1.0);
     cout << "Total number of detected clusters: " << clusters.size() << endl;
 
     //Box box = processPointClouds->BoundingBox();
