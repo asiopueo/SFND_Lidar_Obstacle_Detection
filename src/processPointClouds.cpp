@@ -28,13 +28,48 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
 
-    // TODO:: Fill in the function to do voxel grid point reduction and region based filtering
+    // Voxel reduction:    
+    typename pcl::PointCloud<PointT>::Ptr voxelCloud( new pcl::PointCloud<PointT>() );
+    pcl::VoxelGrid<PointT> voxelFilter;
+    voxelFilter.setInputCloud(cloud);
+    const float leafSize = 0.2;
+    voxelFilter.setLeafSize(leafSize, leafSize, leafSize);
+    voxelFilter.filter(*voxelCloud);
+
+    // Crop outside region:
+    typename pcl::PointCloud<PointT>::Ptr regionCloud( new pcl::PointCloud<PointT>() );
+    pcl::CropBox<PointT> cropRegion;
+    cropRegion.setInputCloud(voxelCloud);
+    cropRegion.setMin(minPoint);
+    cropRegion.setMax(maxPoint);
+    cropRegion.filter(*regionCloud);
+
+    // Crop car roof (slightly more difficult, as there isn't a method for cropping inside a box):
+    std::vector<int> indices;
+    const float minRoof = -2.;
+    const float maxRoof = 2.;
+    pcl::CropBox<PointT> cropRoof( true );
+    cropRoof.setInputCloud(regionCloud);
+    cropRoof.setMin(Eigen::Vector4f(minRoof, minRoof, minRoof, 1.));
+    cropRoof.setMax(Eigen::Vector4f(maxRoof, maxRoof, maxRoof, 1.));
+    cropRoof.filter(indices);
+
+    pcl::PointIndices::Ptr roofIndices( new pcl::PointIndices() );
+    for (auto index : indices)
+        roofIndices->indices.push_back(index);
+
+    typename pcl::PointCloud<PointT>::Ptr refinedCloud( new pcl::PointCloud<PointT>() );
+    pcl::ExtractIndices<PointT> extract;
+    extract.setInputCloud(regionCloud);
+    extract.setIndices(roofIndices);
+    extract.setNegative( true );
+    extract.filter(*refinedCloud);
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
     std::cout << "filtering took " << elapsedTime.count() << " milliseconds" << std::endl;
 
-    return cloud;
+    return refinedCloud;
 }
 
 
