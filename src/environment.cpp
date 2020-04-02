@@ -79,14 +79,28 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
     pcl::PointCloud<pcl::PointXYZI>::Ptr refinedCloud(new pcl::PointCloud<pcl::PointXYZI>() );
     
     refinedCloud = pointProcessor.FilterCloud(inputCloud, 1.0, Eigen::Vector4f(-15,-15,-15,1), Eigen::Vector4f(15,15,15,1));
-    renderPointCloud(viewer, refinedCloud, "inputCloud");
+    std::pair<boost::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>, boost::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>> segmentedPair = pointProcessor.SegmentPlaneCustom(refinedCloud, 100, 0.2);
+    renderPointCloud(viewer, segmentedPair.second, "inputCloud");
+
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
+    clusters = pointProcessor.Clustering(segmentedPair.second, 1.0, 1.0, 10.0);
+    cout << "Total number of detected clusters: " << clusters.size() << endl;
+
+    // Render all clusters:
+    for (size_t clusterId=0; clusterId<clusters.size(); ++clusterId)
+    {
+        Box box = pointProcessor.BoundingBox(clusters[clusterId]);
+        renderBox(viewer, box, clusterId, Color(1,1,1), 0.5);
+    }
 }
 
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPointClouds<pcl::PointXYZI>* pointProcessor, const pcl::PointCloud<pcl::PointXYZI>::Ptr& inputCloud)
 {
     pcl::PointCloud<pcl::PointXYZI>::Ptr refinedCloud(new pcl::PointCloud<pcl::PointXYZI>() );
+ 
     refinedCloud = pointProcessor->FilterCloud(inputCloud, 1.0, Eigen::Vector4f(-15,-15,-15,1), Eigen::Vector4f(15,15,15,1));
-    renderPointCloud(viewer, refinedCloud, "inputCloud");
+    std::pair<boost::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>, boost::shared_ptr<pcl::PointCloud<pcl::PointXYZI>>> segmentedPair = pointProcessor->SegmentPlaneCustom(refinedCloud, 100, 0.2);
+    renderPointCloud(viewer, segmentedPair.second, "inputCloud");
 }
 
 
@@ -125,15 +139,15 @@ int main (int argc, char** argv)
 
     // Static scene:
     //simpleHighway(viewer);
-    /*cityBlock(viewer);
+    cityBlock(viewer);
     while (!viewer->wasStopped ())
     {
         viewer->spinOnce ();
-    }*/
+    }
 
 
     // Dynamic scene:
-    ProcessPointClouds<pcl::PointXYZI>* pointProcessor = new ProcessPointClouds<pcl::PointXYZI>();
+    /*ProcessPointClouds<pcl::PointXYZI>* pointProcessor = new ProcessPointClouds<pcl::PointXYZI>();
     std::vector<boost::filesystem::path> stream = pointProcessor->streamPcd("../src/sensors/data/pcd/data_1");
     auto streamIterator = stream.begin();
     pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud;
@@ -151,7 +165,7 @@ int main (int argc, char** argv)
             streamIterator = stream.begin();
 
         viewer->spinOnce ();
-    }
+    }*/
 
 
 
