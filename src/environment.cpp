@@ -109,7 +109,7 @@ class SceneWrapper
             return inputCloud;
         }
 
-        typename pcl::PointCloud<PointT>::Ptr (SceneWrapper::*getCloudPoints)();
+        typename pcl::PointCloud<PointT>::Ptr (SceneWrapper::*getCloudPoints)(); // Function pointer
 
     public:
         SceneWrapper(typename pcl::PointCloud<PointT>::Ptr inputCloud) : viewer( new pcl::visualization::PCLVisualizer ("3D Viewer"))
@@ -151,7 +151,6 @@ class SceneWrapper
 
         void Spin()
         {
-            //inputCloud = pointProcessor->loadPcd( (*streamIterator).string() );
             inputCloud = (this->*getCloudPoints)();
             render(inputCloud);
             
@@ -161,7 +160,6 @@ class SceneWrapper
                 {
                     viewer->removeAllPointClouds();
                     viewer->removeAllShapes();
-                    
                     inputCloud = (this->*getCloudPoints)();
                     render(inputCloud);
                 }
@@ -181,8 +179,13 @@ enum MODE {
 
 int main (int argc, char** argv)
 {
-    MODE mode = MODE(0); // Choose environment
-   
+    MODE mode = MODE(1);
+
+    // Simplest possible environment selector - no proof for valid values
+    if (argc == 2) {
+        mode = MODE( boost::lexical_cast<int>(argv[1][0]) );
+    }
+
     if (mode == STATIC_HIGHWAY)
     {
         std::cout << "Starting enviroment static highway" << std::endl;
