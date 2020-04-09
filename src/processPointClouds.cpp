@@ -301,9 +301,9 @@ BoxQ ProcessPointClouds<PointT>::PCABoundingBox(typename pcl::PointCloud<PointT>
     Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
     projectionTransform.block<3,3>(0,0) = eigenVectors.transpose();
     projectionTransform.block<3,1>(0,3) = -1.0 * projectionTransform.block<3,3>(0, 0) * pcaCentroid.head<3>();
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPointsProjected (new pcl::PointCloud<pcl::PointXYZ>);
+    typename pcl::PointCloud<PointT>::Ptr cloudPointsProjected (new pcl::PointCloud<PointT>);
     pcl::transformPointCloud(*cluster, *cloudPointsProjected, projectionTransform);
-    pcl::PointXYZ minPoint, maxPoint;
+    PointT minPoint, maxPoint;
     pcl::getMinMax3D(*cloudPointsProjected, minPoint, maxPoint);
     const Eigen::Vector3f meanDiagonal = 0.5 * (maxPoint.getVector3fMap() + minPoint.getVector3fMap());
 
