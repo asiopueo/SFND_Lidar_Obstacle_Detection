@@ -78,8 +78,14 @@ class SceneWrapper
             std::pair<boost::shared_ptr<pcl::PointCloud<PointT>>, boost::shared_ptr<pcl::PointCloud<PointT>>> segmentedPair = pointProcessor->SegmentPlaneCustom(refinedCloud, 100, 0.2);
             renderPointCloud(viewer, segmentedPair.second, "inputCloud");
 
+            // Clustering:
             std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
-            clusters = pointProcessor->Clustering(segmentedPair.second, 1.0, 1.0, 10.0);
+            const uint minPoints = 10;    // minimum number of points per cluster
+            const uint maxPoints = 1000; // maximum number of points per cluster
+            const float minDimension = 1.0; // minimum size of longest edge of an imaginary bounding box
+            const float maxDimension = 8.0; // maximum size of longest edge of an imaginary bounding box
+            const float tolerance = 0.55;
+            clusters = pointProcessor->Clustering(segmentedPair.second, tolerance, minPoints, maxPoints, minDimension, maxDimension);
             cout << "Total number of detected clusters: " << clusters.size() << endl;
             
             // Render all clusters:
@@ -156,6 +162,8 @@ class SceneWrapper
             
             while (!viewer->wasStopped ())
             {
+                viewer->spinOnce ();
+
                 if (streamingFlag==true)
                 {
                     viewer->removeAllPointClouds();
@@ -163,7 +171,6 @@ class SceneWrapper
                     inputCloud = (this->*getCloudPoints)();
                     render(inputCloud);
                 }
-                viewer->spinOnce ();
             }
         }
 };
@@ -185,6 +192,16 @@ int main (int argc, char** argv)
     if (argc == 2) {
         mode = MODE( boost::lexical_cast<int>(argv[1][0]) );
     }
+    else {
+        std::cout   << "Usage: '$>./environment <option>' where <option>::= 0|1|2" << std::endl
+                    << "\t0: Highway (static) environment" << std::endl
+                    << "\t1: City block (static) environment" << std::endl
+                    << "\t2: City block (dynamic) environment" << std::endl
+                    << "Example: '$>./environment 2' for dynamic city block environment" << std::endl;
+        return 0;
+    }
+    
+
 
     if (mode == STATIC_HIGHWAY)
     {
@@ -197,7 +214,7 @@ int main (int argc, char** argv)
     else if (mode == STATIC_CITYBLOCK)
     {
         std::cout << "Starting enviroment static city block" << std::endl;
-        SceneWrapper<pcl::PointXYZI> scene("../src/sensors/data/pcd/data_1/0000000000.pcd");
+        SceneWrapper<pcl::PointXYZI> scene("../src/sensors/data/pcd/data_1/0000000010.pcd");
         scene.Spin();
     }
     else if (mode == DYNAMIC_CITYBLOCK)
@@ -206,4 +223,5 @@ int main (int argc, char** argv)
         SceneWrapper<pcl::PointXYZI> scene("../src/sensors/data/pcd/data_1");
         scene.Spin();
     }
+    return 0;
 }
