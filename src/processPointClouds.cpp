@@ -46,12 +46,19 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
 
     // Crop car roof (slightly more difficult, as there isn't a method for cropping inside a box):
     std::vector<int> indices;
-    const float minRoof = -2.;
-    const float maxRoof = 2.;
+    const float minRoof_x = -2.;
+    const float maxRoof_x = 3.5;
+
+    const float minRoof_y = -2.;
+    const float maxRoof_y = 2.;
+
+    const float maxRoof_z = 2.;
+    const float minRoof_z = -2.5;
+
     pcl::CropBox<PointT> cropRoof( true );
     cropRoof.setInputCloud(regionCloud);
-    cropRoof.setMin(Eigen::Vector4f(minRoof, minRoof, minRoof, 1.));
-    cropRoof.setMax(Eigen::Vector4f(maxRoof, maxRoof, maxRoof, 1.));
+    cropRoof.setMin(Eigen::Vector4f(minRoof_x, minRoof_y, minRoof_z, 1.));
+    cropRoof.setMax(Eigen::Vector4f(maxRoof_x, maxRoof_y, maxRoof_z, 1.));
     cropRoof.filter(indices);
 
     pcl::PointIndices::Ptr roofIndices( new pcl::PointIndices() );
@@ -209,7 +216,7 @@ void clusterHelper(typename pcl::PointCloud<PointT>::Ptr& cloud, std::unordered_
 
 // TODO:: Fill in the function to perform euclidean clustering to group detected obstacles
 template<typename PointT>
-std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr cloud, float clusterTolerance, int minSize, int maxSize)
+std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::Clustering(typename pcl::PointCloud<PointT>::Ptr cloud, const float clusterTolerance, const int minSize, const int maxSize, const float minDimension, const float maxDimension)
 {
     // Time clustering process
     auto startTime = std::chrono::steady_clock::now();
@@ -236,8 +243,18 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
                 PointT point = cloud->points[i];
                 clusterCloud->points.push_back(point);
             }
-                        
-            clusters.push_back(clusterCloud);
+
+            // Filtering via the number of points of the cluster:
+            if (minSize < clusterCloud->points.size() && clusterCloud->points.size() < maxSize) {
+
+                // Filtering via the absolute dimensions of the point cloud:
+                PointT minPoint, maxPoint;
+                pcl::getMinMax3D(*clusterCloud, minPoint, maxPoint);
+                float max = std::max({maxPoint.x-minPoint.x, maxPoint.y-minPoint.y, maxPoint.z-minPoint.z });
+                float min = std::min({maxPoint.x-minPoint.x, maxPoint.y-minPoint.y, maxPoint.z-minPoint.z });
+                if (minDimension < max && max < maxDimension)
+                    clusters.push_back(clusterCloud);
+            }
 		}
 	}
 
@@ -288,7 +305,7 @@ BoxQ ProcessPointClouds<PointT>::PCABoundingBox(typename pcl::PointCloud<PointT>
     pcl::transformPointCloud(*cluster, *cloudPointsProjected, projectionTransform);
     pcl::PointXYZ minPoint, maxPoint;
     pcl::getMinMax3D(*cloudPointsProjected, minPoint, maxPoint);
-    const Eigen::Vector3f meanDiagonal = 0.5*(maxPoint.getVector3fMap() + minPoint.getVector3fMap());
+    const Eigen::Vector3f meanDiagonal = 0.5 * (maxPoint.getVector3fMap() + minPoint.getVector3fMap());
 
     const Eigen::Quaternionf bboxQuaternion(eigenVectors);
     const Eigen::Vector3f bboxTransform = eigenVectors * meanDiagonal + pcaCentroid.head<3>();
